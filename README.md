@@ -66,26 +66,80 @@ In advanced stages, the focus shifts to improving query performance. Some optimi
   
 ---
 
-## 15 Practice Questions
+## 15 Problems 
 
 ### Easy Level
 1. Retrieve the names of all tracks that have more than 1 billion streams.
+```sql
+select track,artist,album,stream from spotify 
+where stream > '1000000000
+```    
 2. List all albums along with their respective artists.
+```sql
+select distinct album,artist from spotify
+```    
 3. Get the total number of comments for tracks where `licensed = TRUE`.
-4. Find all tracks that belong to the album type `single`.
-5. Count the total number of tracks by each artist.
+```sql
+select sum(comments_recieved) as total_comments from spotify
+where licensed is TRUE
+```
+4. Count the total number of tracks by each artist.
+```sql
+select count(*),artist from spotify
+group by artist
+```
+ 
 
 ### Medium Level
 1. Calculate the average danceability of tracks in each album.
+```sql
+select avg(danceability),album from spotify
+group by album
+order by 1 desc
+```
 2. Find the top 5 tracks with the highest energy values.
+```sql
+select track,max(energy) from spotify
+group by 1
+order by 2 desc
+limit 5
+```
 3. List all tracks along with their views and likes where `official_video = TRUE`.
+```sql
+select sum(likes) as total_likes,sum(total_views) as VIEW_S,track from spotify
+where official_video is true
+group by track
+order by sum(total_views) desc
+```
 4. For each album, calculate the total views of all associated tracks.
+```sql
+select sum(stream),album,track from spotify
+group by 2,3
+```
 5. Retrieve the track names that have been streamed on Spotify more than YouTube.
+```sql
+create table streamed as (
+select track,
+ coalesce (sum(case when most_played_on = 'Spotify' then stream end),0) as spotstream,
+ coalesce (sum(case when most_played_on = 'Youtube' then stream end),0) as youstream
+from spotify
+	group by 1
+	)
+select * from streamed
+	where spotstream > youstream and youstream <> 0
+
+```
 
 ### Advanced Level
-1. Find the top 3 most-viewed tracks for each artist using window functions.
-2. Write a query to find tracks where the liveness score is above the average.
-3. **Use a `WITH` clause to calculate the difference between the highest and lowest energy values for tracks in each album.**
+1. Find the top 3 most-viewed tracks for each artist.
+```sql
+create table t1 as (select *,
+dense_rank() over(partition by artist order by stream desc ) as ranking from spotify) 
+select * from t1
+where ranking <=3  
+
+```
+2. **Use a `WITH` clause to calculate the difference between the highest and lowest energy values for tracks in each album.**
 ```sql
 WITH cte
 AS
@@ -103,8 +157,19 @@ FROM cte
 ORDER BY 2 DESC
 ```
    
-5. Find tracks where the energy-to-liveness ratio is greater than 1.2.
-6. Calculate the cumulative sum of likes for tracks ordered by the number of views, using window functions.
+
+3. Find tracks where the energy-to-liveness ratio is greater than 1.2.
+```sql
+select track, (energy::numeric/(liveness)::numeric ) as ratio from spotify
+where energy::numeric/(liveness)::numeric > 1.2 and liveness <> 0
+
+```
+4. Calculate the cumulative sum of likes for tracks ordered by the number of views.
+```sql
+select track,
+sum(likes) over (partition by track order by total_views desc)
+from spotify
+```
 
 
 Here’s an updated section for your **Spotify Advanced SQL Project and Query Optimization** README, focusing on the query optimization task you performed. You can include the specific screenshots and graphs as described.
@@ -113,7 +178,7 @@ Here’s an updated section for your **Spotify Advanced SQL Project and Query Op
 
 ## Query Optimization Technique 
 
-To improve query performance, we carried out the following optimization process:
+To improve query performance, I carried out the following optimization process:
 
 - **Initial Query Performance Analysis Using `EXPLAIN`**
     - We began by analyzing the performance of a query using the `EXPLAIN` function.
@@ -160,18 +225,5 @@ This optimization shows how indexing can drastically reduce query time, improvin
 5. Explore query optimization techniques for large datasets.
 
 ---
-
-## Next Steps
-- **Visualize the Data**: Use a data visualization tool like **Tableau** or **Power BI** to create dashboards based on the query results.
-- **Expand Dataset**: Add more rows to the dataset for broader analysis and scalability testing.
-- **Advanced Querying**: Dive deeper into query optimization and explore the performance of SQL queries on larger datasets.
-
----
-
-## Contributing
-If you would like to contribute to this project, feel free to fork the repository, submit pull requests, or raise issues.
-
----
-
 ## License
 This project is licensed under the MIT License.
